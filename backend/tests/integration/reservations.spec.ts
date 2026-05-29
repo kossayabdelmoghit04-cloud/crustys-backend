@@ -7,6 +7,7 @@ import { request, authRequest } from '../helpers/request.helper';
 import { cleanDatabase, seedTestDatabase, disconnectPrisma } from '../helpers/prisma.helper';
 import { createReservation } from '../helpers/factories';
 import { loginAsAdmin, loginAsCustomer } from '../helpers/auth.helper';
+import { expectApiResource, expectApiCollection } from '../helpers/response.helper';
 import { prisma } from '../../src/utils/prisma';
 import { ReservationStatus } from '@prisma/client';
 
@@ -54,10 +55,10 @@ describe('Reservations Integration Tests', () => {
         .send(payload)
         .expect(201);
 
-      expect(res.body.status).toBe('success');
-      expect(res.body.data.reservation.id).toBeDefined();
-      expect(res.body.data.reservation.customerName).toBe(payload.customerName);
-      expect(res.body.data.reservation.status).toBe(ReservationStatus.PENDING);
+      const reservation = expectApiResource(res, 'reservation');
+      expect(reservation.id).toBeDefined();
+      expect(reservation.customerName).toBe(payload.customerName);
+      expect(reservation.status).toBe(ReservationStatus.PENDING);
     });
 
     it('should fail if reservation date is in the past', async () => {
@@ -151,8 +152,8 @@ describe('Reservations Integration Tests', () => {
         .get('/api/v1/reservations')
         .expect(200);
 
-      expect(res.body.status).toBe('success');
-      expect(res.body.data.reservations.length).toBe(2);
+      const reservations = expectApiCollection(res, 'reservations');
+      expect(reservations.length).toBe(2);
     });
 
     it('should deny customer accounts from listing reservations', async () => {
@@ -170,8 +171,8 @@ describe('Reservations Integration Tests', () => {
         .get(`/api/v1/reservations/${reservation.id}`)
         .expect(200);
 
-      expect(res.body.status).toBe('success');
-      expect(res.body.data.reservation.id).toBe(reservation.id);
+      const dbReservation = expectApiResource(res, 'reservation');
+      expect(dbReservation.id).toBe(reservation.id);
     });
 
     it('should return 404 for non-existent reservation ID', async () => {

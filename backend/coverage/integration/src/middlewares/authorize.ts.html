@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">30.76% </span>
+                <span class="strong">92.3% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>4/13</span>
+                <span class='fraction'>12/13</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">85.71% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/7</span>
+                <span class='fraction'>6/7</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">25% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>1/4</span>
+                <span class='fraction'>4/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">25% </span>
+                <span class="strong">91.66% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>3/12</span>
+                <span class='fraction'>11/12</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -91,30 +91,30 @@
 <a name='L26'></a><a href='#L26'>26</a>
 <a name='L27'></a><a href='#L27'>27</a>
 <a name='L28'></a><a href='#L28'>28</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">15x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">135x</span>
+<span class="cline-any cline-yes">17x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">17x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">17x</span>
+<span class="cline-any cline-yes">17x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">17x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Request, Response, NextFunction } from 'express';
@@ -125,23 +125,23 @@ import { AppError } from '../utils/appError';
  * Supports 'ADMIN', 'CUSTOMER' roles, and maps legacy 'Super Admin' roles to 'ADMIN' for security.
  */
 export const authorize = (...allowedRoles: string[]) =&gt; {
-  return <span class="fstat-no" title="function not covered" >(r</span>eq: Request, res: Response, next: NextFunction) =&gt; {
-<span class="cstat-no" title="statement not covered" >    if (!req.user) {</span>
+  return (req: Request, res: Response, next: NextFunction) =&gt; {
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (!req.user) {
 <span class="cstat-no" title="statement not covered" >      return next(new AppError('Accès non autorisé. Authentification requise.', 401));</span>
     }
 &nbsp;
-    const userRole = <span class="cstat-no" title="statement not covered" >req.user.role;</span>
+    const userRole = req.user.role;
     
     // Normalize role comparison (e.g., matching 'ADMIN' and 'CUSTOMER')
-    const isAuthorized = <span class="cstat-no" title="statement not covered" >allowedRoles.some(</span>
-<span class="fstat-no" title="function not covered" >      (r</span>ole) =&gt; <span class="cstat-no" title="statement not covered" >role.toUpperCase() === userRole.toUpperCase()</span>
-    ) || (userRole === 'Super Admin' &amp;&amp; allowedRoles.map(<span class="fstat-no" title="function not covered" >r </span>=&gt; <span class="cstat-no" title="statement not covered" >r.toUpperCase())</span>.includes('ADMIN'));
+    const isAuthorized = allowedRoles.some(
+      (role) =&gt; role.toUpperCase() === userRole.toUpperCase()
+    ) || (userRole === 'Super Admin' &amp;&amp; allowedRoles.map(r =&gt; r.toUpperCase()).includes('ADMIN'));
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    if (!isAuthorized) {</span>
-<span class="cstat-no" title="statement not covered" >      return next(new AppError('Accès interdit. Privilèges insuffisants pour cette action.', 403));</span>
+    if (!isAuthorized) {
+      return next(new AppError('Accès interdit. Privilèges insuffisants pour cette action.', 403));
     }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    next();</span>
+    next();
   };
 };
 &nbsp;</pre></td></tr></table></pre>
@@ -151,7 +151,7 @@ export const authorize = (...allowedRoles: string[]) =&gt; {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-05-28T18:06:43.559Z
+                at 2026-05-29T17:43:58.193Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

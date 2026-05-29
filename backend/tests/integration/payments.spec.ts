@@ -104,7 +104,7 @@ describe('Payments Integration Tests', () => {
         .post('/api/v1/payments/webhook')
         .set('content-type', 'application/json')
         .set('stripe-signature', 't=123,v1=fake_sig')
-        .send(Buffer.from(JSON.stringify(webhookPayload)))
+        .send(JSON.stringify(webhookPayload))
         .expect(200);
 
       expect(res.body.received).toBe(true);
