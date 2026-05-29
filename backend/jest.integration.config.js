@@ -1,0 +1,37 @@
+module.exports = {
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+  verbose: true,
+  clearMocks: true,
+  restoreMocks: true,
+  roots: ['<rootDir>/tests/integration'],
+  testMatch: ['**/?(*.)+(spec|test).ts'],
+  transform: {
+    '^.+\\.tsx?$': ['ts-jest', {
+      tsconfig: 'tsconfig.json',
+    }],
+  },
+  setupFilesAfterEnv: ['<rootDir>/tests/setup/env.setup.ts'],
+  globalSetup: '<rootDir>/tests/setup/global-setup.ts',
+  globalTeardown: '<rootDir>/tests/setup/global-teardown.ts',
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+  },
+  collectCoverage: true,
+  coverageDirectory: 'coverage/integration',
+  coverageReporters: ['text', 'lcov', 'json', 'html'],
+  collectCoverageFrom: [
+    'src/**/*.ts',
+    '!src/**/*.d.ts',
+    '!src/**/*.types.ts',
+    '!src/**/*.validation.ts',
+    '!src/**/*.route.ts',
+    '!src/**/*.routes.ts',
+    '!src/**/*.constants.ts',
+    '!src/server.ts',
+    '!src/config/**',
+    '!src/docs/**',
+    '!src/logs/**',
+    '!src/tests/**', // ignore unit tests setup
+  ],
+};
