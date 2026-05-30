@@ -1,48 +1,19 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
-enum OrderStatus {
-  PENDING
-  CONFIRMED
-  PREPARING
-  DELIVERING
-  DELIVERED
-  CANCELLED
-}
-
-enum ReservationStatus {
-  PENDING
-  CONFIRMED
-  CANCELLED
-  COMPLETED
-}
-
-enum PaymentStatus {
-  PENDING
-  PAID
-  FAILED
-  REFUNDED
-}
-
-enum PaymentMethod {
-  CARD
-  CASH
-  STRIPE
-}
-
 model Role {
   id          String   @id @default(uuid())
   name        String   @unique
-  permissions Json     // List of string permissions
-  admins      Admin[]
+  permissions Json
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
+  admins      Admin[]
 
   @@map("roles")
 }
@@ -53,39 +24,34 @@ model Admin {
   email        String        @unique
   password     String
   roleId       String        @map("role_id")
-  role         Role          @relation(fields: [roleId], references: [id])
-  activityLogs ActivityLog[]
   createdAt    DateTime      @default(now()) @map("created_at")
   updatedAt    DateTime      @updatedAt @map("updated_at")
+  activityLogs ActivityLog[]
+  role         Role          @relation(fields: [roleId], references: [id])
 
   @@map("admins")
 }
 
-enum UserRole {
-  ADMIN
-  CUSTOMER
-}
-
 model User {
-  id            String        @id @default(cuid())
-  email         String        @unique
-  password      String
-  firstName     String        @map("first_name")
-  lastName      String        @map("last_name")
-  fullName      String        @default("") @map("full_name")
-  phone         String?
-  avatar        String?
-  isVerified    Boolean       @default(false) @map("is_verified")
-  role          UserRole      @default(CUSTOMER)
-  isActive      Boolean       @default(true) @map("is_active")
-  refreshToken  String?       @map("refresh_token")
-  passwordResetToken String?    @map("password_reset_token")
-  passwordResetExpires DateTime? @map("password_reset_expires")
-  deletedAt     DateTime?     @map("deleted_at")
-  createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt     DateTime      @updatedAt @map("updated_at")
-  orders        Order[]
-  reservations  Reservation[]
+  id                   String        @id @default(cuid())
+  email                String        @unique
+  password             String
+  createdAt            DateTime      @default(now()) @map("created_at")
+  updatedAt            DateTime      @updatedAt @map("updated_at")
+  avatar               String?
+  fullName             String        @default("") @map("full_name")
+  isVerified           Boolean       @default(false) @map("is_verified")
+  phone                String?
+  deletedAt            DateTime?     @map("deleted_at")
+  firstName            String        @map("first_name")
+  isActive             Boolean       @default(true) @map("is_active")
+  lastName             String        @map("last_name")
+  passwordResetExpires DateTime?     @map("password_reset_expires")
+  passwordResetToken   String?       @map("password_reset_token")
+  refreshToken         String?       @map("refresh_token")
+  role                 UserRole      @default(CUSTOMER)
+  orders               Order[]
+  reservations         Reservation[]
 
   @@map("users")
 }
@@ -93,35 +59,35 @@ model User {
 model Category {
   id          String    @id @default(uuid())
   name        String    @unique
-  slug        String    @unique
-  image       String?
-  description String?
-  isActive    Boolean   @default(true) @map("is_active")
-  products    Product[]
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
+  description String?
+  image       String?
+  isActive    Boolean   @default(true) @map("is_active")
+  slug        String    @unique
+  products    Product[]
 
   @@map("categories")
 }
 
 model Product {
   id            String         @id @default(uuid())
-  categoryId    String         @map("category_id")
-  category      Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   name          String
-  slug          String         @unique
   description   String?
   price         Float
-  discountPrice Float?         @map("discount_price")
-  stockQuantity Int            @default(0) @map("stock_quantity")
-  calories      Int?
   image         String?
-  isFeatured    Boolean        @default(false) @map("is_featured")
-  isAvailable   Boolean        @default(true) @map("is_available")
-  images        ProductImage[]
-  orderItems    OrderItem[]
+  categoryId    String         @map("category_id")
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
+  calories      Int?
+  discountPrice Float?         @map("discount_price")
+  isAvailable   Boolean        @default(true) @map("is_available")
+  isFeatured    Boolean        @default(false) @map("is_featured")
+  slug          String         @unique
+  stockQuantity Int            @default(0) @map("stock_quantity")
+  orderItems    OrderItem[]
+  images        ProductImage[]
+  category      Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   @@map("products")
 }
@@ -129,9 +95,9 @@ model Product {
 model ProductImage {
   id        String   @id @default(uuid())
   productId String   @map("product_id")
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   imageUrl  String   @map("image_url")
   createdAt DateTime @default(now()) @map("created_at")
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@map("product_images")
 }
@@ -139,19 +105,19 @@ model ProductImage {
 model Order {
   id              String      @id @default(uuid())
   userId          String?     @map("user_id")
-  user            User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  orderNumber     String      @unique @map("order_number")
-  totalPrice      Float       @map("total_price")
-  deliveryType    String      @map("delivery_type") // delivery, pickup, dine_in
-  paymentStatus   String      @map("payment_status") // pending, paid, failed
-  orderStatus     OrderStatus @default(PENDING) @map("order_status")
-  customerAddress String?     @map("customer_address")
-  customerPhone   String      @map("customer_phone")
-  notes           String?
-  items           OrderItem[]
-  payments        Payment[]
   createdAt       DateTime    @default(now()) @map("created_at")
   updatedAt       DateTime    @updatedAt @map("updated_at")
+  customerAddress String?     @map("customer_address")
+  customerPhone   String      @map("customer_phone")
+  deliveryType    String      @map("delivery_type")
+  notes           String?
+  orderNumber     String      @unique @map("order_number")
+  orderStatus     OrderStatus @default(PENDING) @map("order_status")
+  paymentStatus   String      @map("payment_status")
+  totalPrice      Float       @map("total_price")
+  items           OrderItem[]
+  user            User?       @relation(fields: [userId], references: [id])
+  payments        Payment[]
 
   @@map("orders")
 }
@@ -159,12 +125,12 @@ model Order {
 model OrderItem {
   id        String  @id @default(uuid())
   orderId   String  @map("order_id")
-  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId String  @map("product_id")
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   quantity  Int
-  unitPrice Float   @map("unit_price")
   subtotal  Float
+  unitPrice Float   @map("unit_price")
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@map("order_items")
 }
@@ -172,14 +138,14 @@ model OrderItem {
 model Payment {
   id            String        @id @default(uuid())
   orderId       String        @map("order_id")
-  order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  paymentMethod PaymentMethod @map("payment_method")
   transactionId String?       @map("transaction_id")
   amount        Float
-  paymentStatus PaymentStatus @map("payment_status")
-  currency      String        @default("CAD")
   paidAt        DateTime      @default(now()) @map("paid_at")
   createdAt     DateTime      @default(now()) @map("created_at")
+  currency      String        @default("CAD")
+  paymentMethod PaymentMethod @map("payment_method")
+  paymentStatus PaymentStatus @map("payment_status")
+  order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("payments")
 }
@@ -187,23 +153,17 @@ model Payment {
 model Reservation {
   id              String            @id @default(uuid())
   userId          String?           @map("user_id")
-  user            User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
-
+  status          ReservationStatus @default(PENDING)
+  createdAt       DateTime          @default(now())
+  customerEmail   String?
   customerName    String
   customerPhone   String
-  customerEmail   String?
-
+  guestsCount     Int
+  notes           String?
   reservationDate DateTime
   reservationTime String
-
-  guestsCount     Int
-
-  status          ReservationStatus @default(PENDING)
-
-  notes           String?
-
-  createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
+  user            User?             @relation(fields: [userId], references: [id])
 
   @@index([reservationDate])
   @@map("reservations")
@@ -212,22 +172,22 @@ model Reservation {
 model ActivityLog {
   id        String   @id @default(uuid())
   adminId   String   @map("admin_id")
-  admin     Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
   action    String
   ipAddress String?  @map("ip_address")
   createdAt DateTime @default(now()) @map("created_at")
+  admin     Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
   @@map("activity_logs")
 }
 
 model Testimonial {
-  id            String   @id @default(cuid())
-  customerName  String
-  message       String
-  rating        Int
-  isApproved    Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String   @id @default(cuid())
+  customerName String
+  message      String
+  rating       Int
+  isApproved   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Contact {
@@ -270,8 +230,8 @@ model MediaMetadata {
   size           Int
   width          Int
   height         Int
-  urls           Json     // JSON conteneur pour les formats (original, thumb, medium, etc.)
-  variants       Json     // Payload détaillé des variantes
+  urls           Json
+  variants       Json
   uploadDuration Int      @map("upload_duration")
   totalDuration  Int      @map("total_duration")
   createdAt      DateTime @default(now()) @map("created_at")
@@ -283,7 +243,7 @@ model UploadSession {
   id          String   @id @default(uuid())
   fingerprint String
   ipAddress   String   @map("ip_address")
-  status      String   // PENDING, COMPLETED, FAILED
+  status      String
   expiresAt   DateTime @map("expires_at")
   createdAt   DateTime @default(now()) @map("created_at")
 
@@ -291,12 +251,12 @@ model UploadSession {
 }
 
 model UploadVersion {
-  id            String   @id @default(uuid())
-  resourceId    String   @map("resource_id") // Liaison logique (ex: productId, categoryId)
-  version       Int      @default(1)
-  originalUrl   String   @map("original_url")
-  activeUrl     String   @map("active_url")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id          String   @id @default(uuid())
+  resourceId  String   @map("resource_id")
+  version     Int      @default(1)
+  originalUrl String   @map("original_url")
+  activeUrl   String   @map("active_url")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("upload_versions")
 }
@@ -315,14 +275,47 @@ model FailedUpload {
 }
 
 model MediaProcessingLog {
-  id          String   @id @default(uuid())
-  jobId       String   @map("job_id")
-  fileName    String   @map("file_name")
-  step        String   // VALIDATION, PROCESSING, UPLOADING, SUCCESS, FAILED
-  duration    Int
-  message     String
-  createdAt   DateTime @default(now()) @map("created_at")
+  id        String   @id @default(uuid())
+  jobId     String   @map("job_id")
+  fileName  String   @map("file_name")
+  step      String
+  duration  Int
+  message   String
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@map("media_processing_logs")
 }
 
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  DELIVERED
+  CANCELLED
+  DELIVERING
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CARD
+  CASH
+  STRIPE
+}
+
+enum UserRole {
+  ADMIN
+  CUSTOMER
+}

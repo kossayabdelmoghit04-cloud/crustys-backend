@@ -1,0 +1,46 @@
+# Ignore dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Ignore build outputs
+dist/
+build/
+out/
+
+# Ignore local environment config
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Ignore testing files and coverage reports
+coverage/
+tests/
+src/tests/
+jest.config.js
+jest.integration.config.js
+jest.security.config.js
+
+# Ignore source maps (optional, if you want smaller production builds)
+**/*.map
+
+# Ignore IDE files and OS metadata
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+EHthumbs.db
+
+# Ignore version control systems
+.git/
+.gitignore
+.dockerignore
+Dockerfile

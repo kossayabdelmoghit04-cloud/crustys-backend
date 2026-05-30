@@ -38,3 +38,10 @@ EHthumbs.db
 # Temporary files
 tmp/
 temp/
+
+# Coverage directories
+coverage/
+
+# Uploads and temporary artifacts
+src/artifacts/temp-uploads/
+

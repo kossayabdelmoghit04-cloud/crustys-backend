@@ -103,6 +103,7 @@ export class AuthController {
         message: 'Tokens rafraîchis avec succès',
         data: {
           accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
         },
       });
     } catch (error) {

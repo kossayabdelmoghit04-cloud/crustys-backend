@@ -6,7 +6,17 @@ dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 process.env.NODE_ENV = 'test';
 process.env.PORT = '5001';
-process.env.DATABASE_URL = 'postgresql://postgres:crustys2026@localhost:5433/crustys_express_test';
+const mainDbUrl = process.env.DATABASE_URL || 'postgresql://postgres:ghayensah123@localhost:5432/postgres?schema=public';
+let derivedTestUrl = 'postgresql://postgres:ghayensah123@localhost:5432/crustys_express_test';
+try {
+  const urlObj = new URL(mainDbUrl);
+  urlObj.pathname = '/crustys_express_test';
+  urlObj.search = '';
+  derivedTestUrl = urlObj.toString();
+} catch (e) {
+  // Fallback
+}
+process.env.DATABASE_URL = derivedTestUrl;
 process.env.JWT_SECRET = 'test-jwt-secret-key-minimum-32-chars-long!!';
 process.env.JWT_EXPIRES_IN = '15m';
 process.env.JWT_REFRESH_SECRET = 'test-jwt-refresh-secret-key-min-32-chars';

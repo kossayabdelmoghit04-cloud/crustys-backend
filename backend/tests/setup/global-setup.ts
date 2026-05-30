@@ -1,9 +1,23 @@
 import { execSync } from 'child_process';
 import { createTestDatabase } from './test-db';
 
+import dotenv from 'dotenv';
+import path from 'path';
+
 export default async function globalSetup() {
-  // Set test database URL before executing anything
-  process.env.DATABASE_URL = 'postgresql://postgres:crustys2026@localhost:5433/crustys_express_test';
+  dotenv.config({ path: path.join(__dirname, '../../.env') });
+  
+  const mainDbUrl = process.env.DATABASE_URL || 'postgresql://postgres:ghayensah123@localhost:5432/postgres?schema=public';
+  let derivedTestUrl = 'postgresql://postgres:ghayensah123@localhost:5432/crustys_express_test';
+  try {
+    const urlObj = new URL(mainDbUrl);
+    urlObj.pathname = '/crustys_express_test';
+    urlObj.search = '';
+    derivedTestUrl = urlObj.toString();
+  } catch (e) {
+    // Fallback
+  }
+  process.env.DATABASE_URL = derivedTestUrl;
 
   // 1. Ensure test database exists
   await createTestDatabase();

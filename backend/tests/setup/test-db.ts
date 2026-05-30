@@ -1,6 +1,22 @@
 import { PrismaClient } from '@prisma/client';
 
-const POSTGRES_DEFAULT_URL = 'postgresql://postgres:crustys2026@localhost:5433/postgres';
+import dotenv from 'dotenv';
+import path from 'path';
+
+dotenv.config({ path: path.join(__dirname, '../../.env') });
+
+const mainDbUrl = process.env.DATABASE_URL || 'postgresql://postgres:ghayensah123@localhost:5432/postgres?schema=public';
+let derivedDefaultUrl = 'postgresql://postgres:ghayensah123@localhost:5432/postgres';
+try {
+  const urlObj = new URL(mainDbUrl);
+  urlObj.pathname = '/postgres';
+  urlObj.search = '';
+  derivedDefaultUrl = urlObj.toString();
+} catch (e) {
+  // Fallback
+}
+
+const POSTGRES_DEFAULT_URL = derivedDefaultUrl;
 
 export async function createTestDatabase() {
   const adminClient = new PrismaClient({
