@@ -32,7 +32,13 @@ import { authRateLimiter } from './middlewares/auth-rate-limit.middleware';
 import { bruteForceMiddleware } from './middlewares/brute-force.middleware';
 
 const app = express();
-
+console.log('STEP 1');
+app.get('/railway-test', (_req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Railway OK'
+  });
+});
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 1. TRUST PROXY — Required for rate limiting behind nginx/load balancers
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -42,11 +48,12 @@ app.set('trust proxy', 1);
 // 2. HELMET — HTTP Header Hardening (CSP, HSTS, XSS, Frameguard, NoSniff)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 app.use(helmetMiddleware);
-
+console.log('STEP 2');
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 3. HPP — HTTP Parameter Pollution Protection
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 app.use(hppMiddleware);
+console.log('STEP 3');
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 4. CORS + COOKIES
