@@ -30,8 +30,14 @@ export const authRateLimiter = rateLimit({
   },
 
   keyGenerator: (req: Request): string => {
-    return req.ip || req.socket.remoteAddress || 'unknown';
-  },
+  const forwarded = req.headers['x-forwarded-for'];
+
+  if (typeof forwarded === 'string') {
+    return forwarded.split(',')[0].trim();
+  }
+
+  return req.socket.remoteAddress || 'unknown';
+},
 
   handler: (req: Request, res: Response): void => {
     const ip = req.ip || req.socket.remoteAddress || 'unknown';

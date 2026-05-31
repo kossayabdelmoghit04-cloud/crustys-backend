@@ -34,8 +34,14 @@ export const limiterOptions = {
 
   // Extraction d'IP robuste (derrière reverse proxy)
   keyGenerator: (req: Request): string => {
-    return req.ip || req.socket.remoteAddress || 'unknown';
-  },
+  const forwarded = req.headers['x-forwarded-for'];
+
+  if (typeof forwarded === 'string') {
+    return forwarded.split(',')[0].trim();
+  }
+
+  return req.socket.remoteAddress || 'unknown';
+},
 
   // Réponse standardisée JSON
   handler: (req: Request, res: Response): void => {

@@ -194,7 +194,7 @@ app.use(
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // API ROUTES (Versioned /api/v1)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-app.use('/api/v1/auth', authRateLimiter, bruteForceMiddleware, authRouter);
+app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/admins', adminRouter);
 app.use('/api/v1/categories', categoryRouter);
 app.use('/api/v1/products', productRouter);
