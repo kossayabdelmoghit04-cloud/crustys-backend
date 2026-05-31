@@ -1,15 +1,18 @@
 import app from './app';
 import { env } from './config/env';
 import { logger } from './utils/logger';
+import './modules/emails/queues/email.events';
 
-console.log('STEP 7: Loaded Minimal app, preparing server bootstrap');
-console.log('PORT configured in env.ts:', env.PORT);
-console.log('PORT raw process.env.PORT:', process.env.PORT);
+// Initialisation du worker d'images arrière-plan, des écouteurs d'événements et des tâches récurrentes Cron
+import './queues/image.worker';
+import { registerQueueEvents } from './queues/queue.events';
+import { initMediaCronJobs } from './cron/cleanup.cron';
 
-console.log('STEP 8: Initializing Server Bind on 0.0.0.0');
+registerQueueEvents('image-processing');
+initMediaCronJobs();
+
 const server = app.listen(env.PORT, '0.0.0.0', () => {
   logger.info(`🚀 Server running in ${env.NODE_ENV} mode on port ${env.PORT}`);
-  console.log('STEP 9: Server successfully bound and listening');
 });
 
 // Handle unhandled promise rejections
