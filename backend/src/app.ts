@@ -76,26 +76,32 @@ app.use(
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.get('/railway-test', (_req, res) => {
+  res.status(200).json({
+    ok: true,
+    message: 'railway works'
+  });
+});
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 7. REQUEST FINGERPRINTING — SHA-256 based client identity
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-app.use(requestFingerprintMiddleware);
+//app.use(requestFingerprintMiddleware);
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 8. IP TRACKING — GeoIP + User-Agent parsing
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-app.use(ipTrackingMiddleware);
+//app.use(ipTrackingMiddleware);
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 9. SUSPICIOUS REQUEST DETECTION — OWASP heuristic engine
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-app.use(suspiciousRequestMiddleware);
+//app.use(suspiciousRequestMiddleware);
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 10. GLOBAL API RATE LIMITING — 100 req / 15 min / IP
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-app.use('/api', apiRateLimiter);
+//app.use('/api', apiRateLimiter);
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 11. HTTP REQUEST LOGGING (Morgan + Winston)
@@ -194,7 +200,7 @@ app.use(
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // API ROUTES (Versioned /api/v1)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-app.use('/api/v1/auth', authRouter);
+// app.use('/api/v1/auth', authRateLimiter, bruteForceMiddleware, authRouter);
 app.use('/api/v1/admins', adminRouter);
 app.use('/api/v1/categories', categoryRouter);
 app.use('/api/v1/products', productRouter);
@@ -208,7 +214,7 @@ app.use('/api/v1/uploads', uploadsRouter);
 app.use('/api/v1/security', securityRouter);
 
 // Deprecated API Routes Fallback (for backward compatibility)
-app.use('/api/auth', authRateLimiter, bruteForceMiddleware, authRouter);
+//app.use('/api/auth', authRateLimiter, bruteForceMiddleware, authRouter);
 app.use('/api/admins', adminRouter);
 app.use('/api/categories', categoryRouter);
 app.use('/api/products', productRouter);
