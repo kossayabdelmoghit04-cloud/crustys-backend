@@ -11,7 +11,7 @@ import { initMediaCronJobs } from './cron/cleanup.cron';
 registerQueueEvents('image-processing');
 initMediaCronJobs();
 
-const server = app.listen(env.PORT, () => {
+const server = app.listen(env.PORT, '0.0.0.0', () => {
   logger.info(`🚀 Server running in ${env.NODE_ENV} mode on port ${env.PORT}`);
 });
 

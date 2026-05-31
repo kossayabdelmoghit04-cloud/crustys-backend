@@ -7,7 +7,7 @@
  * Anti brute-force, anti credential stuffing.
  */
 
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { Request, Response } from 'express';
 import { securityConfig } from '../config/security.config';
 import { SecurityAuditLogger } from '../logs/security.audit';
@@ -29,15 +29,9 @@ export const authRateLimiter = rateLimit({
     return false;
   },
 
-  keyGenerator: (req: Request): string => {
-  const forwarded = req.headers['x-forwarded-for'];
-
-  if (typeof forwarded === 'string') {
-    return forwarded.split(',')[0].trim();
-  }
-
-  return req.socket.remoteAddress || 'unknown';
-},
+  keyGenerator: (req: Request) => {
+    return ipKeyGenerator(req.ip || req.socket?.remoteAddress || '');
+  },
 
   handler: (req: Request, res: Response): void => {
     const ip = req.ip || req.socket.remoteAddress || 'unknown';
