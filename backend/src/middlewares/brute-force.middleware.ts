@@ -12,7 +12,12 @@ import { BruteForceService } from '../security/brute-force.service';
 import { SecurityAuditLogger } from '../logs/security.audit';
 import { securityMetrics } from '../metrics/security.metrics';
 
+import { DIAGNOSTIC_CONFIG } from '../config/diagnostics';
+
 export const bruteForceMiddleware = (req: Request, res: Response, next: NextFunction): void => {
+  if (!DIAGNOSTIC_CONFIG.enableBruteForce) {
+    return next();
+  }
   const ip = req.ip || req.socket.remoteAddress || 'unknown';
   const { banned, remainingMs } = BruteForceService.isBanned(ip);
 

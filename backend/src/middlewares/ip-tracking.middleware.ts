@@ -8,10 +8,52 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import geoip from 'geoip-lite';
-import useragent from 'useragent';
 import { logger } from '../utils/logger';
 import { securityConfig } from '../config/security.config';
+import { DIAGNOSTIC_CONFIG } from '../config/diagnostics';
+
+// Lazy loader/stub for geoip-lite to prevent expensive file parsing on import when disabled
+const getGeoIP = () => {
+  if (DIAGNOSTIC_CONFIG.enableGeoIP) {
+    try {
+      return require('geoip-lite');
+    } catch (err: any) {
+      logger.error(`[GeoIP Lazy Load Error] ${err.message}`);
+    }
+  }
+  return {
+    lookup: () => ({
+      country: 'CA',
+      city: 'Montreal',
+      region: 'QC',
+      timezone: 'America/Toronto',
+      ll: [45.5, -73.6]
+    })
+  };
+};
+
+// Lazy loader/stub for useragent to prevent performance bottlenecks when disabled
+const getUserAgent = () => {
+  if (DIAGNOSTIC_CONFIG.enableUserAgent) {
+    try {
+      return require('useragent');
+    } catch (err: any) {
+      logger.error(`[UserAgent Lazy Load Error] ${err.message}`);
+    }
+  }
+  return {
+    parse: () => ({
+      family: 'Chrome',
+      toVersion: () => '120.0.0',
+      os: {
+        toString: () => 'Windows 11'
+      },
+      device: {
+        family: 'Desktop'
+      }
+    })
+  };
+};
 
 // Étend l'interface Request pour le tracking
 declare global {
@@ -45,7 +87,7 @@ export const ipTrackingMiddleware = (req: Request, _res: Response, next: NextFun
   if (securityConfig.ipTracking.logGeoLocation) {
     // Nettoyer le préfixe IPv6-mapped IPv4
     const cleanIP = ip.replace(/^::ffff:/, '');
-    const geo = geoip.lookup(cleanIP);
+    const geo = getGeoIP().lookup(cleanIP);
 
     req.geoLocation = {
       country: geo?.country || 'UNKNOWN',
@@ -59,7 +101,7 @@ export const ipTrackingMiddleware = (req: Request, _res: Response, next: NextFun
   // ── User-Agent parsing ──
   if (securityConfig.ipTracking.logUserAgent) {
     const rawUA = req.get('user-agent') || '';
-    const agent = useragent.parse(rawUA);
+    const agent = getUserAgent().parse(rawUA);
 
     req.parsedUA = {
       browser: agent.family,

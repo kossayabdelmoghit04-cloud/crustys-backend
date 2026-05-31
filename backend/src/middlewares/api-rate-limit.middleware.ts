@@ -63,4 +63,14 @@ export const limiterOptions = {
   },
 };
 
-export const apiRateLimiter = rateLimit(limiterOptions);
+import { DIAGNOSTIC_CONFIG } from '../config/diagnostics';
+import { NextFunction } from 'express';
+
+const realRateLimiter = rateLimit(limiterOptions);
+
+export const apiRateLimiter = (req: Request, res: Response, next: NextFunction): void => {
+  if (DIAGNOSTIC_CONFIG.enableApiRateLimit) {
+    return realRateLimiter(req as any, res as any, next as any);
+  }
+  next();
+};

@@ -79,19 +79,37 @@ const options: swaggerJSDoc.Options = {
   ],
 };
 
+import { DIAGNOSTIC_CONFIG } from './diagnostics';
+
 /**
  * Compile Swagger JSON Specification
  */
-const swaggerSpec = swaggerJSDoc(options) as any;
-
-// Dynamically fetch Zod components and merge them into the compiled JSDoc Swagger specification
-const zodComponents = getZodOpenApiComponents();
-if (zodComponents && zodComponents.schemas) {
-  swaggerSpec.components = swaggerSpec.components || {};
-  swaggerSpec.components.schemas = {
-    ...swaggerSpec.components.schemas,
-    ...zodComponents.schemas,
-  };
-}
+const swaggerSpec = DIAGNOSTIC_CONFIG.enableSwagger
+  ? (() => {
+      const spec = swaggerJSDoc(options) as any;
+      // Dynamically fetch Zod components and merge them into the compiled JSDoc Swagger specification
+      const zodComponents = getZodOpenApiComponents();
+      if (zodComponents && zodComponents.schemas) {
+        spec.components = spec.components || {};
+        spec.components.schemas = {
+          ...spec.components.schemas,
+          ...zodComponents.schemas,
+        };
+      }
+      return spec;
+    })()
+  : {
+      openapi: '3.0.0',
+      info: {
+        title: "Crusty's Express API (STUB)",
+        version: '1.0.0',
+        description: 'Swagger is currently running in diagnostic stub mode.'
+      },
+      paths: {},
+      components: {
+        securitySchemes: {},
+        schemas: {},
+      },
+    };
 
 export { swaggerSpec };

@@ -2,6 +2,8 @@ import Redis, { RedisOptions } from 'ioredis';
 import { env } from './env';
 import { logger } from '../utils/logger';
 
+import { DIAGNOSTIC_CONFIG } from './diagnostics';
+
 /**
  * Shared Redis connection options for BullMQ Queue and Worker instances.
  * Note: BullMQ requires maxRetriesPerRequest to be null.
@@ -55,4 +57,9 @@ export function createRedisClient(): Redis {
 }
 
 // Standalone client instance for general purpose key-value usage or health checks
-export const redisClient = createRedisClient();
+export const redisClient = DIAGNOSTIC_CONFIG.enableStandaloneRedis
+  ? createRedisClient()
+  : ({
+      on: () => {},
+      quit: async () => {},
+    } as any);

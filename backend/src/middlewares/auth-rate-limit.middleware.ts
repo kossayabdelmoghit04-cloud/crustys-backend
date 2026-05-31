@@ -13,7 +13,10 @@ import { securityConfig } from '../config/security.config';
 import { SecurityAuditLogger } from '../logs/security.audit';
 import { securityMetrics } from '../metrics/security.metrics';
 
-export const authRateLimiter = rateLimit({
+import { DIAGNOSTIC_CONFIG } from '../config/diagnostics';
+import { NextFunction } from 'express';
+
+const realAuthRateLimiter = rateLimit({
   windowMs: securityConfig.authRateLimit.windowMs,
   max: securityConfig.authRateLimit.max,
   standardHeaders: true,
@@ -58,3 +61,10 @@ export const authRateLimiter = rateLimit({
     });
   },
 });
+
+export const authRateLimiter = (req: Request, res: Response, next: NextFunction): void => {
+  if (DIAGNOSTIC_CONFIG.enableAuthRateLimit) {
+    return realAuthRateLimiter(req as any, res as any, next as any);
+  }
+  next();
+};
