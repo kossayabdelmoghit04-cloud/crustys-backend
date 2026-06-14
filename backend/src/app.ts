@@ -21,6 +21,12 @@ import testimonialRouter from './modules/testimonials';
 import usersRouter from './modules/users/users.route';
 import uploadsRouter from './modules/uploads/uploads.routes';
 import securityRouter from './modules/security/security.route';
+import contactRouter from './modules/contact';
+import healthRouter from './modules/health';
+import promBundle from 'express-prom-bundle';
+import { MetricsService, metricsRouter, MetricsController } from './modules/metrics';
+import { authenticate } from './middlewares/authenticate';
+import { authorize } from './middlewares/authorize';
 
 // BullMQ Queue Import
 import { emailQueue } from './modules/emails';
@@ -37,6 +43,7 @@ import { authRateLimiter } from './middlewares/auth-rate-limit.middleware';
 import { bruteForceMiddleware } from './middlewares/brute-force.middleware';
 
 console.log('⚡ [App] Initializing Crusty\'s Express (DIAGNOSTIC ACTIVE MODE)');
+MetricsService.initialize();
 const app = express();
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -95,6 +102,23 @@ app.use(
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Prometheus HTTP metrics middleware
+const metricsMiddleware = promBundle({
+  includeMethod: true,
+  includePath: true,
+  includeStatusCode: true,
+  normalizePath: [
+    ['^/api/v1/users/.*', '/api/v1/users/#id'],
+    ['^/api/v1/products/.*', '/api/v1/products/#id'],
+    ['^/api/v1/categories/.*', '/api/v1/categories/#id'],
+    ['^/api/v1/orders/.*', '/api/v1/orders/#id'],
+    ['^/api/v1/reservations/.*', '/api/v1/reservations/#id'],
+    ['^/api/v1/uploads/.*', '/api/v1/uploads/#id'],
+  ],
+  promRegistry: MetricsService.registry
+});
+app.use(metricsMiddleware);
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 7. REQUEST FINGERPRINTING
@@ -179,6 +203,8 @@ app.use('/api/v1/testimonials', testimonialRouter);
 app.use('/api/v1/users', usersRouter);
 app.use('/api/v1/uploads', uploadsRouter);
 app.use('/api/v1/security', securityRouter);
+app.use('/api/v1/contacts', contactRouter);
+app.use('/api/v1/metrics', metricsRouter);
 
 // Deprecated Route Fallbacks
 console.log('⚡ [App] Mounting Deprecated API Fallback Routes (/api)');
@@ -193,6 +219,8 @@ app.use('/api/analytics', analyticsRouter);
 app.use('/api/testimonials', testimonialRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/uploads', uploadsRouter);
+app.use('/api/contacts', contactRouter);
+app.use('/api/metrics', metricsRouter);
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 🏥 HEALTH CHECK & MONITORING ENDPOINTS
@@ -207,15 +235,8 @@ app.get('/railway-test', (_req, res) => {
   });
 });
 
-app.get('/health', (_req, res) => {
-  res.status(200).json({
-    status: 'success',
-    message: 'Server is healthy (DIAGNOSTIC MODE)',
-    timestamp: new Date().toISOString(),
-    env: env.NODE_ENV,
-    diagnostics: DIAGNOSTIC_CONFIG,
-  });
-});
+app.use(healthRouter);
+app.get('/metrics', authenticate, authorize('ADMIN'), MetricsController.getMetrics);
 
 // Async Queue health check route
 const queuesHealthHandler = async (req: express.Request, res: express.Response) => {

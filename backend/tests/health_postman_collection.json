@@ -1,0 +1,155 @@
+{
+  "info": {
+    "_postman_id": "8488e0b6-1d11-4700-bfbf-a9f8749a2a53",
+    "name": "Crusty's Express - Health Check System",
+    "description": "Postman collection to verify the implemented Health Check endpoints for Crusty's Express backend API.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "GET /health (Detailed Health Check)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "health"
+          ]
+        },
+        "description": "Retrieves system metrics including environment, version, uptime, and status of connected databases and caches."
+      },
+      "response": []
+    },
+    {
+      "name": "GET /ready (Readiness Probe)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/ready",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "ready"
+          ]
+        },
+        "description": "Readiness check verifying database and Redis connections. Returns 200 OK if healthy, or 503 Service Unavailable if any dependency is down."
+      },
+      "response": []
+    },
+    {
+      "name": "GET /live (Liveness Probe)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/live",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "live"
+          ]
+        },
+        "description": "Liveness check to verify if the Node.js application process is active. Returns 200 OK immediately."
+      },
+      "response": []
+    },
+    {
+      "name": "GET /health (Alias: /api/health)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/health",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET /health (Alias: /api/v1/health)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/v1/health",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET /health (Alias: /healthz)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/healthz",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "healthz"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test(\"Status code is correct\", function () {",
+          "    if (pm.request.url.path.includes(\"ready\") && pm.response.code !== 200) {",
+          "        pm.response.to.have.status(503);",
+          "    } else {",
+          "        pm.response.to.have.status(200);",
+          "    }",
+          "});",
+          "",
+          "pm.test(\"Response time is acceptable\", function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(500);",
+          "});"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    }
+  ]
+}

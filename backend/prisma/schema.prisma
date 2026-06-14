@@ -19,15 +19,14 @@ model Role {
 }
 
 model Admin {
-  id           String        @id @default(uuid())
-  fullName     String        @map("full_name")
-  email        String        @unique
-  password     String
-  roleId       String        @map("role_id")
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
-  activityLogs ActivityLog[]
-  role         Role          @relation(fields: [roleId], references: [id])
+  id        String   @id @default(uuid())
+  fullName  String   @map("full_name")
+  email     String   @unique
+  password  String
+  roleId    String   @map("role_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  role      Role     @relation(fields: [roleId], references: [id])
 
   @@map("admins")
 }
@@ -171,12 +170,22 @@ model Reservation {
 
 model ActivityLog {
   id        String   @id @default(uuid())
-  adminId   String   @map("admin_id")
+  userId    String?  @map("user_id")
+  userEmail String?  @map("user_email")
+  role      String?
   action    String
+  entity    String?
+  entityId  String?  @map("entity_id")
+  oldValue  Json?    @map("old_value")
+  newValue  Json?    @map("new_value")
   ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
   createdAt DateTime @default(now()) @map("created_at")
-  admin     Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
+  @@index([createdAt])
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
   @@map("activity_logs")
 }
 
