@@ -19,14 +19,15 @@ model Role {
 }
 
 model Admin {
-  id        String   @id @default(uuid())
-  fullName  String   @map("full_name")
-  email     String   @unique
-  password  String
-  roleId    String   @map("role_id")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  role      Role     @relation(fields: [roleId], references: [id])
+  id            String              @id @default(uuid())
+  fullName      String              @map("full_name")
+  email         String              @unique
+  password      String
+  roleId        String              @map("role_id")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+  role          Role                @relation(fields: [roleId], references: [id])
+  notifications AdminNotification[]
 
   @@map("admins")
 }
@@ -328,3 +329,51 @@ enum UserRole {
   ADMIN
   CUSTOMER
 }
+
+model AdminNotification {
+  id          String   @id @default(cuid())
+  title       String
+  message     String
+
+  type        NotificationType
+
+  isRead      Boolean  @default(false)
+
+  metadata    Json?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  adminId     String?
+
+  admin       Admin? @relation(fields: [adminId], references: [id])
+
+  @@index([isRead])
+  @@index([type])
+  @@index([createdAt])
+  @@map("admin_notifications")
+}
+
+enum NotificationType {
+  ORDER_CREATED
+  ORDER_PAID
+  ORDER_CANCELLED
+  ORDER_REFUNDED
+
+  RESERVATION_CREATED
+  RESERVATION_CANCELLED
+
+  CONTACT_RECEIVED
+
+  TESTIMONIAL_CREATED
+
+  LOW_STOCK
+  OUT_OF_STOCK
+
+  SECURITY_ALERT
+
+  ADMIN_CREATED
+  ROLE_CHANGED
+  USER_DELETED
+}
+

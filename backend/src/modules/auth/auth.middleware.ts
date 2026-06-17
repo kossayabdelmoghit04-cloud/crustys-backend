@@ -5,6 +5,27 @@ import { AppError } from '../../utils/appError';
 export { authenticate, extractBearerToken } from '../../middlewares/authenticate';
 export { authorize as requireRole } from '../../middlewares/authorize';
 
+import { authenticate } from '../../middlewares/authenticate';
+import { AppError } from '../../utils/appError';
+
+/**
+ * Authentication middleware that enforces JWT validation and checks that the user is an administrator
+ */
+export const authenticateAdmin = (req: Request, res: Response, next: NextFunction) => {
+  authenticate(req, res, (err) => {
+    if (err) return next(err);
+    if (!req.user) {
+      return next(new AppError('Accès non autorisé. Authentification requise.', 401));
+    }
+    const role = req.user.role.toUpperCase();
+    if (role !== 'ADMIN' && role !== 'SUPER ADMIN' && role !== 'SUPER_ADMIN') {
+      return next(new AppError('Accès interdit. Privilèges administratifs requis.', 403));
+    }
+    next();
+  });
+};
+
+
 /**
  * Module-level permissions middleware.
  * Enforces permission checks for administrator roles ('Super Admin', 'ADMIN').
