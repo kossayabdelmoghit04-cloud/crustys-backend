@@ -23,6 +23,7 @@ import uploadsRouter from './modules/uploads/uploads.routes';
 import securityRouter from './modules/security/security.route';
 import contactRouter from './modules/contact';
 import healthRouter from './modules/health';
+import { auditRouter } from './modules/audit';
 import promBundle from 'express-prom-bundle';
 import { MetricsService, metricsRouter, MetricsController } from './modules/metrics';
 import { authenticate } from './middlewares/authenticate';
@@ -205,6 +206,7 @@ app.use('/api/v1/uploads', uploadsRouter);
 app.use('/api/v1/security', securityRouter);
 app.use('/api/v1/contacts', contactRouter);
 app.use('/api/v1/metrics', metricsRouter);
+app.use('/api/v1/audit-logs', auditRouter);
 
 // Deprecated Route Fallbacks
 console.log('⚡ [App] Mounting Deprecated API Fallback Routes (/api)');
@@ -221,6 +223,7 @@ app.use('/api/users', usersRouter);
 app.use('/api/uploads', uploadsRouter);
 app.use('/api/contacts', contactRouter);
 app.use('/api/metrics', metricsRouter);
+app.use('/api/audit-logs', auditRouter);
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 🏥 HEALTH CHECK & MONITORING ENDPOINTS

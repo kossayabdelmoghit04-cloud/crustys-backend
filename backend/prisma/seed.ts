@@ -36,6 +36,8 @@ async function main() {
         'read:payments',
         'write:payments',
         'read:analytics',
+        'read:auditlogs',
+        'export:auditlogs',
       ],
     },
     create: {
@@ -54,6 +56,8 @@ async function main() {
         'read:payments',
         'write:payments',
         'read:analytics',
+        'read:auditlogs',
+        'export:auditlogs',
       ],
     },
   });

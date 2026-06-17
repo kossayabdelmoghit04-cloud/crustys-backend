@@ -5,8 +5,8 @@ export interface CreateAuditLogInput {
   action: string;
   entity?: string | null;
   entityId?: string | null;
-  oldValue?: any;
-  newValue?: any;
+  oldValue?: unknown;
+  newValue?: unknown;
   ipAddress?: string | null;
   userAgent?: string | null;
 }

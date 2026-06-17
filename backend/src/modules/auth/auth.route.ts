@@ -4,6 +4,7 @@ import { validate } from '../../middlewares/validate';
 import { loginSchema, registerSchema, forgotPasswordSchema, resetPasswordSchema } from './auth.validation';
 import { authenticate } from '../../middlewares/authenticate';
 import { authRateLimiter } from '../../middlewares/rateLimit';
+import { auditTrail } from '../audit/audit.middleware';
 
 const router = Router();
 
@@ -16,6 +17,7 @@ router.post(
   '/register',
   authRateLimiter,
   validate(registerSchema),
+  auditTrail({ action: 'auth_register' }),
   AuthController.register
 );
 
@@ -24,6 +26,7 @@ router.post(
   '/login',
   authRateLimiter,
   validate(loginSchema),
+  auditTrail({ action: 'auth_login' }),
   AuthController.login
 );
 
@@ -44,6 +47,7 @@ router.post(
   '/reset-password',
   authRateLimiter,
   validate(resetPasswordSchema),
+  auditTrail({ action: 'auth_password_reset' }),
   AuthController.resetPassword
 );
 
@@ -55,6 +59,6 @@ router.post(
 router.get('/profile', authenticate, AuthController.profile);
 
 // 5. Invalidate session and log out
-router.post('/logout', authenticate, AuthController.logout);
+router.post('/logout', authenticate, auditTrail({ action: 'auth_logout' }), AuthController.logout);
 
 export default router;

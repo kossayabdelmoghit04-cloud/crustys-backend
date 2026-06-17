@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../../utils/prisma';
 import { logger } from '../../utils/logger';
 import { AuditService } from './audit.service';
+import { Prisma } from '@prisma/client';
 
 export interface AuditTrailOptions {
   action: string;
@@ -20,7 +21,7 @@ export const auditTrail = (options: AuditTrailOptions) => {
         ? options.getEntityId(req) 
         : req.params.id || req.params.uuid || undefined;
 
-      let oldValue: any = null;
+      let oldValue: Prisma.InputJsonValue | null = null;
 
       // 2. Si c'est une modification (PUT/PATCH/DELETE) et qu'on a un ID,
       // on récupère l'ancienne valeur en base de données avant que l'action s'exécute.
@@ -28,20 +29,21 @@ export const auditTrail = (options: AuditTrailOptions) => {
         try {
           // Normalisation du nom du modèle Prisma (ex: "Product" -> "product")
           const modelName = options.entity.charAt(0).toLowerCase() + options.entity.slice(1);
-          const prismaModel = (prisma as any)[modelName];
+          const prismaModel = (prisma as Record<string, unknown>)[modelName] as { findUnique?: (args: { where: { id: string } }) => Promise<unknown> } | undefined;
           if (prismaModel && typeof prismaModel.findUnique === 'function') {
-            oldValue = await prismaModel.findUnique({ where: { id: entityId } });
+            oldValue = (await prismaModel.findUnique({ where: { id: entityId } })) as Prisma.InputJsonValue;
           }
-        } catch (err: any) {
-          logger.warn(`[Audit Middleware] Impossible de récupérer l'état précédent de l'entité ${options.entity} (ID: ${entityId}): ${err.message}`);
+        } catch (err: unknown) {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          logger.warn(`[Audit Middleware] Impossible de récupérer l'état précédent de l'entité ${options.entity} (ID: ${entityId}): ${errMsg}`);
         }
       }
 
       // 3. Intercepter la réponse HTTP pour extraire la nouvelle valeur et écrire le log en arrière-plan
       const originalJson = res.json;
-      res.json = function (body: any) {
+      res.json = function (body: unknown) {
         res.json = originalJson;
-        const returnedJson = originalJson.call(this, body);
+        const returnedJson = originalJson.call(this, body as Parameters<typeof originalJson>[0]);
 
         // N'historiser que les réponses HTTP réussies (2xx)
         if (res.statusCode >= 200 && res.statusCode < 300) {
@@ -84,22 +86,25 @@ export const auditTrail = (options: AuditTrailOptions) => {
               action: options.action,
               entity: options.entity || null,
               entityId: finalEntityId ? String(finalEntityId) : null,
-              oldValue,
-              newValue,
+              oldValue: oldValue as Prisma.InputJsonValue,
+              newValue: newValue as Prisma.InputJsonValue,
               ipAddress,
               userAgent,
-            }).catch((err: any) => {
-              logger.error(`[Audit Middleware] Échec de l'écriture du log d'audit : ${err.message}`);
+            }).catch((err: unknown) => {
+              const errMsg = err instanceof Error ? err.message : String(err);
+              logger.error(`[Audit Middleware] Échec de l'écriture du log d'audit : ${errMsg}`);
             });
-          } catch (err: any) {
-            logger.error(`[Audit Middleware] Erreur lors de la capture des métadonnées d'audit : ${err.message}`);
+          } catch (err: unknown) {
+            const errMsg = err instanceof Error ? err.message : String(err);
+            logger.error(`[Audit Middleware] Erreur lors de la capture des métadonnées d'audit : ${errMsg}`);
           }
         }
 
         return returnedJson;
       };
-    } catch (err: any) {
-      logger.error(`[Audit Middleware] Erreur inattendue dans le middleware : ${err.message}`);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      logger.error(`[Audit Middleware] Erreur inattendue dans le middleware : ${errMsg}`);
     }
 
     next();

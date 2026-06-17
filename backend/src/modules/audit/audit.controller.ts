@@ -97,7 +97,7 @@ export class AuditController {
           headers.join(','),
           ...flatLogs.map(row => 
             headers.map(h => {
-              const val = (row as any)[h] || '';
+              const val = (row as Record<string, unknown>)[h] || '';
               const escaped = String(val).replace(/"/g, '""');
               return `"${escaped}"`;
             }).join(',')

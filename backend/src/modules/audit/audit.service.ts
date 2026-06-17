@@ -1,6 +1,7 @@
 import { prisma } from '../../utils/prisma';
 import { AppError } from '../../utils/appError';
 import { CreateAuditLogInput, AuditLogQueryFilters } from './audit.types';
+import { Prisma } from '@prisma/client';
 
 export class AuditService {
   /**
@@ -31,7 +32,7 @@ export class AuditService {
     const limit = Number(filters.limit) || 20;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Prisma.ActivityLogWhereInput = {};
 
     if (filters.userId) {
       where.userId = filters.userId;
@@ -94,7 +95,7 @@ export class AuditService {
    * Récupérer les logs d'audit pour l'export (sans pagination)
    */
   static async findAllForExport(filters: Omit<AuditLogQueryFilters, 'page' | 'limit'>) {
-    const where: any = {};
+    const where: Prisma.ActivityLogWhereInput = {};
 
     if (filters.userId) {
       where.userId = filters.userId;

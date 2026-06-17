@@ -4,7 +4,7 @@ Contact Module ✓
 Testimonials Completion ✓
 Health Endpoint ✓
 Metrics Endpoint ✓
-Audit Logs
+Audit Logs ✓
 Admin Notifications
 Low Stock Alerts
 Sentry
@@ -15,4 +15,18 @@ Docker Validation
 CI/CD
 Postman Collection
 Documentation Technique
+Architecture Diagrams
+
+Priorité Critique
+Admin Notifications
+Low Stock Alerts
+Sentry
+
+Priorité Production
+PostgreSQL Backups
+CI/CD
+
+Priorité Livraison Client
+Documentation Technique
+Postman Collection
 Architecture Diagrams

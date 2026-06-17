@@ -9,6 +9,7 @@ import {
   updateUserStatusSchema, 
   getUserQuerySchema 
 } from './users.validation';
+import { auditTrail } from '../audit/audit.middleware';
 
 const router = Router();
 
@@ -35,6 +36,7 @@ router.get(
 router.patch(
   '/:id',
   validate(updateUserSchema),
+  auditTrail({ action: 'user_update', entity: 'User' }),
   UsersController.updateUser
 );
 
@@ -42,6 +44,7 @@ router.patch(
 router.delete(
   '/:id',
   authorize('ADMIN'),
+  auditTrail({ action: 'user_delete', entity: 'User' }),
   UsersController.deleteUser
 );
 
@@ -50,6 +53,7 @@ router.patch(
   '/:id/role',
   authorize('ADMIN'),
   validate(updateUserRoleSchema),
+  auditTrail({ action: 'user_update_role', entity: 'User' }),
   UsersController.updateUserRole
 );
 
@@ -58,6 +62,7 @@ router.patch(
   '/:id/status',
   authorize('ADMIN'),
   validate(updateUserStatusSchema),
+  auditTrail({ action: 'user_update_status', entity: 'User' }),
   UsersController.updateUserStatus
 );
 

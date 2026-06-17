@@ -11,6 +11,7 @@ import {
   approveTestimonialSchema,
   deleteTestimonialSchema,
 } from '../validation/testimonial.validation';
+import { auditTrail } from '../../audit/audit.middleware';
 
 const router = Router();
 
@@ -51,6 +52,7 @@ router.patch(
   authorize('ADMIN'),
   sanitizeBody,
   validate(approveTestimonialSchema),
+  auditTrail({ action: 'testimonial_moderate', entity: 'Testimonial' }),
   TestimonialController.approveTestimonial
 );
 
@@ -60,6 +62,7 @@ router.delete(
   authenticate,
   authorize('ADMIN'),
   validate(deleteTestimonialSchema),
+  auditTrail({ action: 'testimonial_delete', entity: 'Testimonial' }),
   TestimonialController.deleteTestimonial
 );
 

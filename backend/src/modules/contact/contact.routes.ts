@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { ContactController } from './contact.controller';
 import { validate } from '../../middlewares/validate';
 import { createContactSchema } from './contact.validation';
+import { auditTrail } from '../audit/audit.middleware';
 
 const router = Router();
 
@@ -13,6 +14,7 @@ const router = Router();
 router.post(
   '/',
   validate(createContactSchema),
+  auditTrail({ action: 'contact_submit', entity: 'Contact' }),
   ContactController.createContact
 );
 
