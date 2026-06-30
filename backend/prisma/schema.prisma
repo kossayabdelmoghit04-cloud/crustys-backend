@@ -84,10 +84,13 @@ model Product {
   isAvailable   Boolean        @default(true) @map("is_available")
   isFeatured    Boolean        @default(false) @map("is_featured")
   slug          String         @unique
-  stockQuantity Int            @default(0) @map("stock_quantity")
-  orderItems    OrderItem[]
-  images        ProductImage[]
-  category      Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  stockQuantity       Int            @default(0) @map("stock_quantity")
+  lowStockThreshold   Int            @default(5) @map("low_stock_threshold")
+  stockAlertEnabled   Boolean        @default(true) @map("stock_alert_enabled")
+  lastLowStockAlertAt DateTime?      @map("last_low_stock_alert_at")
+  orderItems          OrderItem[]
+  images              ProductImage[]
+  category            Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   @@map("products")
 }
@@ -170,18 +173,19 @@ model Reservation {
 }
 
 model ActivityLog {
-  id        String   @id @default(uuid())
-  userId    String?  @map("user_id")
-  userEmail String?  @map("user_email")
-  role      String?
-  action    String
-  entity    String?
-  entityId  String?  @map("entity_id")
-  oldValue  Json?    @map("old_value")
-  newValue  Json?    @map("new_value")
-  ipAddress String?  @map("ip_address")
-  userAgent String?  @map("user_agent")
-  createdAt DateTime @default(now()) @map("created_at")
+  id            String   @id @default(uuid())
+  userId        String?  @map("user_id")
+  userEmail     String?  @map("user_email")
+  role          String?
+  action        String
+  entity        String?
+  entityId      String?  @map("entity_id")
+  oldValue      Json?    @map("old_value")
+  newValue      Json?    @map("new_value")
+  ipAddress     String?  @map("ip_address")
+  userAgent     String?  @map("user_agent")
+  sentryEventId String?  @map("sentry_event_id")
+  createdAt     DateTime @default(now()) @map("created_at")
 
   @@index([createdAt])
   @@index([userId])

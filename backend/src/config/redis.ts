@@ -1,6 +1,8 @@
 import Redis, { RedisOptions } from 'ioredis';
 import { env } from './env';
 import { logger } from '../utils/logger';
+import * as Sentry from '@sentry/node';
+import { reportCriticalFailure } from './sentry';
 
 import { DIAGNOSTIC_CONFIG } from './diagnostics';
 
@@ -47,6 +49,14 @@ export function createRedisClient(): Redis {
 
   client.on('error', (err) => {
     logger.error(`[Redis Error] Socket connection failed: ${err.message}`);
+    Sentry.captureException(err, { tags: { service: 'redis' } });
+    reportCriticalFailure(
+      err,
+      'REDIS_FAILURE',
+      'Redis Connection Error',
+      `Le client Redis autonome a perdu la connexion : ${err.message}`,
+      { host: env.REDIS_HOST, port: env.REDIS_PORT }
+    ).catch(() => {});
   });
 
   client.on('close', () => {

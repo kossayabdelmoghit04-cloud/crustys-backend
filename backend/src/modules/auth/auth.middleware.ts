@@ -6,7 +6,6 @@ export { authenticate, extractBearerToken } from '../../middlewares/authenticate
 export { authorize as requireRole } from '../../middlewares/authorize';
 
 import { authenticate } from '../../middlewares/authenticate';
-import { AppError } from '../../utils/appError';
 
 /**
  * Authentication middleware that enforces JWT validation and checks that the user is an administrator

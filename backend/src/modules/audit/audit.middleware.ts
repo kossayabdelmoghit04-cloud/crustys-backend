@@ -29,7 +29,7 @@ export const auditTrail = (options: AuditTrailOptions) => {
         try {
           // Normalisation du nom du modèle Prisma (ex: "Product" -> "product")
           const modelName = options.entity.charAt(0).toLowerCase() + options.entity.slice(1);
-          const prismaModel = (prisma as Record<string, unknown>)[modelName] as { findUnique?: (args: { where: { id: string } }) => Promise<unknown> } | undefined;
+          const prismaModel = (prisma as unknown as Record<string, unknown>)[modelName] as { findUnique?: (args: { where: { id: string } }) => Promise<unknown> } | undefined;
           if (prismaModel && typeof prismaModel.findUnique === 'function') {
             oldValue = (await prismaModel.findUnique({ where: { id: entityId } })) as Prisma.InputJsonValue;
           }
@@ -55,24 +55,25 @@ export const auditTrail = (options: AuditTrailOptions) => {
 
             // Gestion spécifique des actions d'authentification et de création
             let newValue = null;
-            if (options.action === 'auth_login' && body?.data) {
-              const userObj = body.data.user || body.data.admin;
+            const bodyAny = body as any;
+            if (options.action === 'auth_login' && bodyAny?.data) {
+              const userObj = bodyAny.data.user || bodyAny.data.admin;
               if (userObj) {
                 userId = userObj.id;
                 userEmail = userObj.email;
-                role = userObj.role || (body.data.admin ? 'ADMIN' : 'CUSTOMER');
+                role = userObj.role || (bodyAny.data.admin ? 'ADMIN' : 'CUSTOMER');
               }
-            } else if (options.action === 'auth_register' && body?.data?.user) {
-              userId = body.data.user.id;
-              userEmail = body.data.user.email;
-              role = body.data.user.role || 'CUSTOMER';
+            } else if (options.action === 'auth_register' && bodyAny?.data?.user) {
+              userId = bodyAny.data.user.id;
+              userEmail = bodyAny.data.user.email;
+              role = bodyAny.data.user.role || 'CUSTOMER';
             } else if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
-              newValue = body?.data || body;
+              newValue = bodyAny?.data || bodyAny;
             }
 
             // Si l'ID de l'entité n'était pas dans la requête (POST/création),
             // on essaie de le récupérer dans la réponse.
-            const finalEntityId = entityId || body?.data?.id || body?.id || null;
+            const finalEntityId = entityId || bodyAny?.data?.id || bodyAny?.id || null;
 
             // Infos complémentaires
             const ipAddress = req.ip || req.socket.remoteAddress || null;

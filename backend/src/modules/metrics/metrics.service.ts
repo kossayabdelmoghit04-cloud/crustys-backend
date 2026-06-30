@@ -5,6 +5,8 @@ import { DIAGNOSTIC_CONFIG } from '../../config/diagnostics';
 import { securityMetrics } from '../../metrics/security.metrics';
 import { UploadMetricsTracker } from '../../metrics/upload.metrics';
 import { QueueMetricsTracker } from '../../metrics/queue.metrics';
+import { env } from '../../config/env';
+import { sentryState } from '../../config/sentry';
 
 export class MetricsService {
   public static readonly registry = new client.Registry();
@@ -22,6 +24,7 @@ export class MetricsService {
     this.registerSecurityMetrics();
     this.registerUploadMetrics();
     this.registerQueueMetrics();
+    this.registerSentryMetrics();
   }
 
   private static registerDatabaseMetrics(): void {
@@ -251,6 +254,41 @@ export class MetricsService {
         queueDelayed.set(report.delayed);
         queuePaused.set(report.paused ? 1 : 0);
         queueLatency.set(report.latencyMs);
+      }
+    });
+  }
+
+  private static registerSentryMetrics(): void {
+    new client.Gauge({
+      name: 'crustys_sentry_connected',
+      help: 'Sentry connection status (1 = Active/DSN set, 0 = Inactive)',
+      registers: [this.registry],
+      collect() {
+        this.set(env.SENTRY_DSN ? 1 : 0);
+      }
+    });
+
+    new client.Gauge({
+      name: 'crustys_sentry_info',
+      help: 'Sentry environment information',
+      labelNames: ['environment'],
+      registers: [this.registry],
+      collect() {
+        this.set({ environment: env.SENTRY_ENVIRONMENT || 'unknown' }, 1);
+      }
+    });
+
+    new client.Gauge({
+      name: 'crustys_sentry_last_error_timestamp_seconds',
+      help: 'UNIX timestamp in seconds of the last captured error',
+      registers: [this.registry],
+      collect() {
+        if (sentryState.lastErrorTimestamp) {
+          const seconds = Math.floor(new Date(sentryState.lastErrorTimestamp).getTime() / 1000);
+          this.set(seconds);
+        } else {
+          this.set(0);
+        }
       }
     });
   }

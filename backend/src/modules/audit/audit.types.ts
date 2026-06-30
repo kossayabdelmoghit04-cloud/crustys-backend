@@ -9,6 +9,7 @@ export interface CreateAuditLogInput {
   newValue?: unknown;
   ipAddress?: string | null;
   userAgent?: string | null;
+  sentryEventId?: string | null;
 }
 
 export interface AuditLogQueryFilters {

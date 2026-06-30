@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ProductService } from './product.service';
+import { StockAlertService } from '../stock-alerts/stock-alert.service';
 
 export class ProductController {
   /**
@@ -103,6 +104,41 @@ export class ProductController {
         status: 'success',
         message: 'Produit supprimé avec succès.',
         data: null,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * @route   GET /api/v1/products/low-stock
+   * @desc    Récupérer tous les produits en stock faible
+   * @access  Private/Admin
+   */
+  static async getLowStockProducts(req: Request, res: Response, next: NextFunction) {
+    try {
+      const products = await StockAlertService.getLowStockProducts();
+      res.status(200).json({
+        success: true,
+        count: products.length,
+        products,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * @route   GET /api/v1/products/stock-stats
+   * @desc    Obtenir les statistiques de stock
+   * @access  Private/Admin
+   */
+  static async getStockStats(req: Request, res: Response, next: NextFunction) {
+    try {
+      const stats = await StockAlertService.getStockStats();
+      res.status(200).json({
+        success: true,
+        ...stats,
       });
     } catch (error) {
       next(error);

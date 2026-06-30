@@ -231,6 +231,17 @@ export class UsersService {
       },
     });
 
+    try {
+      const { AdminNotificationService } = require('../admin-notifications/admin-notification.service');
+      const displayName = user.fullName || `${user.firstName} ${user.lastName}`.trim();
+      AdminNotificationService.createNotification({
+        title: "Utilisateur supprimé",
+        message: `L'utilisateur ${displayName} (${user.email}) a été supprimé`,
+        type: "USER_DELETED",
+        metadata: { userId: user.id, email: user.email }
+      }).catch(() => {});
+    } catch (err) {}
+
     logger.info(`[Users Service] Soft-deleted user and cleared sessions: ID=${id}`);
   }
 }

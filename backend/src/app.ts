@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
+import * as Sentry from '@sentry/node';
+import { initializeSentry } from './config/sentry';
 import { env } from './config/env';
 import { notFound } from './middlewares/notFound';
 import { errorHandler } from './middlewares/errorHandler';
@@ -24,6 +26,8 @@ import securityRouter from './modules/security/security.route';
 import contactRouter from './modules/contact';
 import healthRouter from './modules/health';
 import { auditRouter } from './modules/audit';
+import adminNotificationsRouter from './modules/admin-notifications';
+import devRouter from './modules/dev/dev.route';
 import promBundle from 'express-prom-bundle';
 import { MetricsService, metricsRouter, MetricsController } from './modules/metrics';
 import { authenticate } from './middlewares/authenticate';
@@ -46,6 +50,13 @@ import { bruteForceMiddleware } from './middlewares/brute-force.middleware';
 console.log('⚡ [App] Initializing Crusty\'s Express (DIAGNOSTIC ACTIVE MODE)');
 MetricsService.initialize();
 const app = express();
+
+// Initialize Sentry monitoring
+initializeSentry(app);
+
+// Sentry Request & Tracing Handlers (Must be registered first)
+app.use(Sentry.Handlers.requestHandler());
+app.use(Sentry.Handlers.tracingHandler());
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 1. TRUST PROXY
@@ -207,6 +218,8 @@ app.use('/api/v1/security', securityRouter);
 app.use('/api/v1/contacts', contactRouter);
 app.use('/api/v1/metrics', metricsRouter);
 app.use('/api/v1/audit-logs', auditRouter);
+app.use('/api/v1/admin-notifications', adminNotificationsRouter);
+app.use('/api/v1/dev', devRouter);
 
 // Deprecated Route Fallbacks
 console.log('⚡ [App] Mounting Deprecated API Fallback Routes (/api)');
@@ -224,6 +237,8 @@ app.use('/api/uploads', uploadsRouter);
 app.use('/api/contacts', contactRouter);
 app.use('/api/metrics', metricsRouter);
 app.use('/api/audit-logs', auditRouter);
+app.use('/api/admin-notifications', adminNotificationsRouter);
+app.use('/api/dev', devRouter);
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 🏥 HEALTH CHECK & MONITORING ENDPOINTS
@@ -282,6 +297,7 @@ app.get('/', (_req, res) => {
 // 💥 ERROR HANDLING MIDDLEWARES
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 app.use(notFound);
+app.use(Sentry.Handlers.errorHandler());
 app.use(errorHandler);
 
 export default app;

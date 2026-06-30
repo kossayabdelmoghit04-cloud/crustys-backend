@@ -1,11 +1,16 @@
 import { prisma } from '../../utils/prisma';
 import { AppError } from '../../utils/appError';
 import { stripe } from '../../utils/stripe';
+import Stripe from 'stripe';
+import * as Sentry from '@sentry/node';
+import { recordSentryErrorTimestamp, reportCriticalFailure } from '../../config/sentry';
 import { env } from '../../config/env';
 import { PaymentStatus, PaymentMethod, OrderStatus } from '@prisma/client';
 import { CreatePaymentIntentDTO, PaymentQueryFilters } from './payment.types';
 import { logger } from '../../utils/logger';
 import { EmailProducer } from '../emails';
+import { AdminNotificationService } from '../admin-notifications/admin-notification.service';
+import { StockAlertService } from '../stock-alerts/stock-alert.service';
 
 export class PaymentService {
   /**
@@ -86,6 +91,47 @@ export class PaymentService {
       };
     } catch (error: any) {
       logger.error(`[Stripe Error] Échec de la création du PaymentIntent: ${error.message}`);
+      
+      recordSentryErrorTimestamp();
+      const orderId = order.id;
+      const paymentId = pendingPayment?.id || 'unknown';
+      const stripePaymentIntentId = error.raw?.payment_intent?.id || error.payment_intent || 'unknown';
+
+      if (error instanceof Stripe.errors.StripeError) {
+        Sentry.configureScope((scope) => {
+          scope.setTags({
+            stripe_error: 'true',
+            stripe_error_type: error.type,
+            orderId,
+            paymentId,
+            stripePaymentIntentId,
+          });
+          scope.setExtras({
+            orderId,
+            paymentId,
+            stripePaymentIntentId,
+            raw_error: error.raw,
+          });
+        });
+        Sentry.captureException(error);
+
+        if (
+          error instanceof Stripe.errors.StripeAPIError ||
+          error instanceof Stripe.errors.StripeAuthenticationError ||
+          error instanceof Stripe.errors.StripePermissionError
+        ) {
+          reportCriticalFailure(
+            error,
+            'STRIPE_FAILURE',
+            'Stripe Gateway Failure',
+            `Échec de la communication avec la passerelle Stripe (${error.constructor.name}) : ${error.message}`,
+            { orderId, paymentId, stripePaymentIntentId }
+          ).catch(() => {});
+        }
+      } else {
+        Sentry.captureException(error);
+      }
+
       throw new AppError(`Erreur d'intégration Stripe : ${error.message}`, 500);
     }
   }
@@ -147,6 +193,27 @@ export class PaymentService {
             });
           }
         });
+
+        if (orderId) {
+          try {
+            const findPromise = prisma.order.findUnique({
+              where: { id: orderId }
+            });
+            if (findPromise && typeof findPromise.then === 'function') {
+              const order = await findPromise;
+              if (order) {
+                await AdminNotificationService.createNotification({
+                  title: "Commande payée",
+                  message: `La commande ${order.orderNumber} a été payée avec succès via Stripe`,
+                  type: "ORDER_PAID",
+                  metadata: { orderId: order.id, orderNumber: order.orderNumber, transactionId }
+                });
+              }
+            }
+          } catch (error: any) {
+            logger.error(`[Stripe Webhook] Erreur lors de la notification de paiement réussi: ${error.message}`);
+          }
+        }
         break;
       }
 
@@ -223,6 +290,27 @@ export class PaymentService {
               });
             }
           });
+
+          // Vérifier les stocks après remboursement (rétablissement)
+          for (const item of payment.order.items) {
+            StockAlertService.checkProductStock(item.productId).catch(err => {
+              logger.error(`[Payment Webhook] Failed checking stock level for restocked product ${item.productId}: ${err.message}`);
+            });
+          }
+
+          AdminNotificationService.createNotification({
+            title: "Commande remboursée",
+            message: `La commande ${payment.order.orderNumber} a été remboursée`,
+            type: "ORDER_REFUNDED",
+            metadata: { orderId: payment.orderId, orderNumber: payment.order.orderNumber, amount: payment.amount }
+          }).catch(() => {});
+
+          AdminNotificationService.createNotification({
+            title: "Commande annulée",
+            message: `La commande ${payment.order.orderNumber} a été annulée suite à son remboursement`,
+            type: "ORDER_CANCELLED",
+            metadata: { orderId: payment.orderId, orderNumber: payment.order.orderNumber }
+          }).catch(() => {});
 
           // Enqueue refund notification email asynchronously (non-blocking)
           if (payment.order.user && payment.order.user.email) {
@@ -322,6 +410,27 @@ export class PaymentService {
         }
       });
 
+      // Vérifier les stocks après remboursement manuel (rétablissement)
+      for (const item of payment.order.items) {
+        StockAlertService.checkProductStock(item.productId).catch(err => {
+          logger.error(`[Payment Service] Failed checking stock level for restocked product ${item.productId}: ${err.message}`);
+        });
+      }
+
+      AdminNotificationService.createNotification({
+        title: "Commande remboursée",
+        message: `La commande ${payment.order.orderNumber} a été remboursée (manuel)`,
+        type: "ORDER_REFUNDED",
+        metadata: { orderId: payment.orderId, orderNumber: payment.order.orderNumber, amount: payment.amount }
+      }).catch(() => {});
+
+      AdminNotificationService.createNotification({
+        title: "Commande annulée",
+        message: `La commande ${payment.order.orderNumber} a été annulée (remboursée)`,
+        type: "ORDER_CANCELLED",
+        metadata: { orderId: payment.orderId, orderNumber: payment.order.orderNumber }
+      }).catch(() => {});
+
       // Enqueue refund notification email asynchronously (non-blocking)
       if (payment.order.user && payment.order.user.email) {
         EmailProducer.enqueueRefundEmail(payment.order.user.email, {
@@ -337,6 +446,46 @@ export class PaymentService {
       return this.getPaymentById(paymentId);
     } catch (error: any) {
       logger.error(`[Stripe Error] Échec du remboursement Stripe : ${error.message}`);
+      
+      recordSentryErrorTimestamp();
+      const orderId = payment ? payment.orderId : 'unknown';
+      const stripePaymentIntentId = payment ? payment.transactionId || 'unknown' : 'unknown';
+
+      if (error instanceof Stripe.errors.StripeError) {
+        Sentry.configureScope((scope) => {
+          scope.setTags({
+            stripe_error: 'true',
+            stripe_error_type: error.type,
+            orderId,
+            paymentId,
+            stripePaymentIntentId,
+          });
+          scope.setExtras({
+            orderId,
+            paymentId,
+            stripePaymentIntentId,
+            raw_error: error.raw,
+          });
+        });
+        Sentry.captureException(error);
+
+        if (
+          error instanceof Stripe.errors.StripeAPIError ||
+          error instanceof Stripe.errors.StripeAuthenticationError ||
+          error instanceof Stripe.errors.StripePermissionError
+        ) {
+          reportCriticalFailure(
+            error,
+            'STRIPE_FAILURE',
+            'Stripe Gateway Failure',
+            `Échec de la communication avec la passerelle Stripe (${error.constructor.name}) : ${error.message}`,
+            { orderId, paymentId, stripePaymentIntentId }
+          ).catch(() => {});
+        }
+      } else {
+        Sentry.captureException(error);
+      }
+
       throw new AppError(`Erreur de remboursement Stripe : ${error.message}`, 500);
     }
   }

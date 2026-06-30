@@ -2,6 +2,7 @@ import { prisma } from '../../utils/prisma';
 import { AppError } from '../../utils/appError';
 import { slugify } from '../../utils/slugify';
 import { CreateProductDTO, UpdateProductDTO, ProductQueryFilters } from './product.types';
+import { StockAlertService } from '../stock-alerts/stock-alert.service';
 
 export class ProductService {
   /**
@@ -258,7 +259,7 @@ export class ProductService {
     }
 
     // 4. Mettre à jour dans une transaction si des images secondaires sont passées
-    return prisma.$transaction(async (tx) => {
+    const updatedProduct = await prisma.$transaction(async (tx) => {
       if (images !== undefined) {
         // Supprimer les anciennes images secondaires
         await tx.productImage.deleteMany({
@@ -288,6 +289,13 @@ export class ProductService {
         },
       });
     });
+
+    // Déclencher la vérification de stock après la mise à jour du produit
+    StockAlertService.checkProductStock(id).catch(err => {
+      console.error(`[Product Service] Failed checking stock level for product ${id}: ${err.message}`);
+    });
+
+    return updatedProduct;
   }
 
   /**

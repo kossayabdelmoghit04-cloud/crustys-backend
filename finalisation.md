@@ -18,8 +18,8 @@ Documentation Technique
 Architecture Diagrams
 
 Priorité Critique
-Admin Notifications
-Low Stock Alerts
+Admin Notifications ✓
+Low Stock Alerts ✓
 Sentry
 
 Priorité Production

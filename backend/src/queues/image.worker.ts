@@ -1,6 +1,7 @@
 import { Worker, Job } from 'bullmq';
 import fs from 'fs';
 import path from 'path';
+import * as Sentry from '@sentry/node';
 import { redisConfig } from './queue.config';
 import { logger } from '../utils/logger';
 import { ImageProcessingJob } from '../jobs/image-processing.job';
@@ -85,14 +86,47 @@ imageWorker.on('failed', async (job, err) => {
 
   const attemptsMade = job.attemptsMade;
   const maxAttempts = job.opts.attempts || 3;
+  const queueName = 'image-processing';
+  const jobId = job.id || 'unknown';
 
-  logger.warn(`[WORKER ALERT] Échec de la tâche Job #${job.id} (Tentative ${attemptsMade}/${maxAttempts}). Raison: ${err.message}`);
+  logger.warn(`[WORKER ALERT] Échec de la tâche Job #${jobId} (Tentative ${attemptsMade}/${maxAttempts}). Raison: ${err.message}`);
   
   await UploadMetricsTracker.recordFailure();
 
+  // Capture job failure in Sentry
+  Sentry.captureException(err, {
+    tags: {
+      queueName,
+      jobId,
+      type: 'job-failure',
+      attemptsMade: String(attemptsMade),
+      maxAttempts: String(maxAttempts),
+    },
+    extra: {
+      jobData: job.data,
+      attemptsMade,
+      maxAttempts,
+    },
+  });
+
   // En cas d'épuisement total des essais (Dead Letter Queue logique)
   if (attemptsMade >= maxAttempts) {
-    logger.error(`[WORKER CRITICAL] Job #${job.id} a épuisé toutes ses tentatives. Transfert vers la table des échecs permanents.`);
+    logger.error(`[WORKER CRITICAL] Job #${jobId} a épuisé toutes ses tentatives. Transfert vers la table des échecs permanents.`);
+
+    // Capture retries exhausted event in Sentry
+    Sentry.captureMessage(`[BullMQ] Tâche ${jobId} sur ${queueName} a épuisé ses tentatives (${attemptsMade}/${maxAttempts}).`, {
+      level: 'error',
+      tags: {
+        queueName,
+        jobId,
+        type: 'retries-exhausted',
+      },
+      extra: {
+        attemptsMade,
+        maxAttempts,
+        error: err.message,
+      },
+    });
     
     try {
       await (prisma as any).failedUpload.create({

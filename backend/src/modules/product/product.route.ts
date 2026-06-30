@@ -9,6 +9,22 @@ const router = Router();
 
 // Routes publiques
 router.get('/', validate(productQuerySchema), ProductController.getAllProducts);
+
+// Routes privées d'administration des stocks (placées avant :id pour éviter les conflits)
+router.get(
+  '/low-stock',
+  authenticate,
+  requirePermissions('read:products'),
+  ProductController.getLowStockProducts
+);
+
+router.get(
+  '/stock-stats',
+  authenticate,
+  requirePermissions('read:products'),
+  ProductController.getStockStats
+);
+
 router.get('/:id', ProductController.getProductById);
 router.get('/slug/:slug', ProductController.getProductBySlug);
 

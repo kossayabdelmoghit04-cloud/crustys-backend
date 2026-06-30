@@ -1,6 +1,7 @@
 import { QueueEvents } from 'bullmq';
 import { redisConfig } from './queue.config';
 import { logger } from '../utils/logger';
+import * as Sentry from '@sentry/node';
 import { UploadAuditLogger } from '../logs/upload.audit';
 
 /**
@@ -42,6 +43,12 @@ export const registerQueueEvents = (queueName: string): QueueEvents => {
 
   queueEvents.on('error', (err) => {
     logger.error(`[QUEUE EVENT] [ERROR] Erreur système sur la file d'événements :`, err);
+    Sentry.captureException(err, {
+      tags: {
+        queueName,
+        type: 'queue-system-error',
+      },
+    });
   });
 
   logger.info(`[QUEUE EVENTS] Écouteurs d'événements globaux enregistrés pour la file "${queueName}"`);

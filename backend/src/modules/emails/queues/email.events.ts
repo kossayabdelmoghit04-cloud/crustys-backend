@@ -1,4 +1,5 @@
 import { emailWorker } from './email.worker';
+import * as Sentry from '@sentry/node';
 import { logger } from '../../../utils/logger';
 
 // Metrics variables for health check monitoring
@@ -32,23 +33,57 @@ emailWorker.on('completed', (job, result) => {
 // 3. Emitted when a job fails (either permanently or for a retry attempt)
 emailWorker.on('failed', (job, err) => {
   queueMetrics.failedCount += 1;
+  const queueName = 'emailQueue';
   
   if (job) {
     const attemptsMade = job.attemptsMade;
     const maxAttempts = job.opts.attempts || 3;
+    const jobId = job.id || 'unknown';
+
+    // Capture job failure in Sentry
+    Sentry.captureException(err, {
+      tags: {
+        queueName,
+        jobId,
+        type: 'job-failure',
+        attemptsMade: String(attemptsMade),
+        maxAttempts: String(maxAttempts),
+      },
+      extra: {
+        jobData: job.data,
+        attemptsMade,
+        maxAttempts,
+      },
+    });
     
     if (attemptsMade < maxAttempts) {
       queueMetrics.retriesCount += 1;
       logger.warn(
-        `[Email Worker Event] Job ${job.id} FAILED (Attempt ${attemptsMade}/${maxAttempts}). Will retry. Reason: ${err.message}`
+        `[Email Worker Event] Job ${jobId} FAILED (Attempt ${attemptsMade}/${maxAttempts}). Will retry. Reason: ${err.message}`
       );
     } else {
       logger.error(
-        `[Email Worker Event] Job ${job.id} FAILED PERMANENTLY after ${attemptsMade} attempts. Reason: ${err.message}`
+        `[Email Worker Event] Job ${jobId} FAILED PERMANENTLY after ${attemptsMade} attempts. Reason: ${err.message}`
       );
+
+      // Capture retries exhausted in Sentry
+      Sentry.captureMessage(`[BullMQ] Tâche ${jobId} sur ${queueName} a épuisé ses tentatives (${attemptsMade}/${maxAttempts}).`, {
+        level: 'error',
+        tags: {
+          queueName,
+          jobId,
+          type: 'retries-exhausted',
+        },
+        extra: {
+          attemptsMade,
+          maxAttempts,
+          error: err.message,
+        },
+      });
     }
   } else {
     logger.error(`[Email Worker Event] A job failed but job object was undefined. Reason: ${err.message}`);
+    Sentry.captureException(err, { tags: { queueName, type: 'job-failure-undefined-job' } });
   }
 });
 
@@ -56,11 +91,16 @@ emailWorker.on('failed', (job, err) => {
 emailWorker.on('stalled', (jobId) => {
   queueMetrics.stalledCount += 1;
   logger.warn(`[Email Worker Event] Job ${jobId} has STALLED. It will be reclaimed and retried by another worker.`);
+  Sentry.captureMessage(`[BullMQ] Tâche ${jobId} sur emailQueue est bloquée (stalled).`, {
+    level: 'warning',
+    tags: { queueName: 'emailQueue', jobId, type: 'job-stalled' },
+  });
 });
 
 // 5. Emitted when worker encounters a general operational error
 emailWorker.on('error', (err) => {
   logger.error(`[Email Worker Event Error] General worker operational failure: ${err.message}`);
+  Sentry.captureException(err, { tags: { queueName: 'emailQueue', type: 'worker-error' } });
 });
 
 logger.info('[Email Worker Events] Listeners attached to email worker instance');

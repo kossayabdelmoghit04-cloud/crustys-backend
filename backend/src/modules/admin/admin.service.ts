@@ -64,6 +64,16 @@ export class AdminService {
       },
     });
 
+    try {
+      const { AdminNotificationService } = require('../admin-notifications/admin-notification.service');
+      AdminNotificationService.createNotification({
+        title: "Nouvel administrateur créé",
+        message: `L'administrateur ${admin.fullName} (${admin.role.name}) a été créé`,
+        type: "ADMIN_CREATED",
+        metadata: { adminId: admin.id, email: admin.email, roleName: admin.role.name }
+      }).catch(() => {});
+    } catch (err) {}
+
     // Retourner l'admin sans le mot de passe
     const { password, ...adminWithoutPassword } = admin;
     return adminWithoutPassword;
@@ -151,6 +161,18 @@ export class AdminService {
         role: true,
       },
     });
+
+    if (data.roleId && data.roleId !== admin.roleId) {
+      try {
+        const { AdminNotificationService } = require('../admin-notifications/admin-notification.service');
+        AdminNotificationService.createNotification({
+          title: "Changement de rôle admin",
+          message: `Le rôle de ${updatedAdmin.fullName} a été changé pour "${updatedAdmin.role.name}"`,
+          type: "ROLE_CHANGED",
+          metadata: { adminId: updatedAdmin.id, roleName: updatedAdmin.role.name }
+        }).catch(() => {});
+      } catch (err) {}
+    }
 
     const { password, ...adminWithoutPassword } = updatedAdmin;
     return adminWithoutPassword;

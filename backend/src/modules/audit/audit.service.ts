@@ -16,10 +16,11 @@ export class AuditService {
         action: data.action,
         entity: data.entity || null,
         entityId: data.entityId || null,
-        oldValue: data.oldValue ?? null,
-        newValue: data.newValue ?? null,
+        oldValue: (data.oldValue ?? Prisma.DbNull) as Prisma.InputJsonValue,
+        newValue: (data.newValue ?? Prisma.DbNull) as Prisma.InputJsonValue,
         ipAddress: data.ipAddress || null,
         userAgent: data.userAgent || null,
+        sentryEventId: data.sentryEventId || null,
       },
     });
   }

@@ -4,6 +4,7 @@ import { ReservationStatus } from '@prisma/client';
 import { CreateReservationDTO, ReservationQueryFilters, UpdateReservationDTO } from './reservation.types';
 import { EmailProducer } from '../emails';
 import { logger } from '../../utils/logger';
+import { AdminNotificationService } from '../admin-notifications/admin-notification.service';
 
 export class ReservationService {
   private static MAX_RESERVATIONS_PER_SLOT = 20;
@@ -51,6 +52,20 @@ export class ReservationService {
         notes: data.notes || null,
         status: ReservationStatus.PENDING,
       },
+    });
+
+    // Créer une notification administrateur pour la nouvelle réservation
+    AdminNotificationService.createNotification({
+      title: "Nouvelle réservation",
+      message: `Réservation pour ${reservation.customerName} (${reservation.guestsCount} personnes) le ${data.reservationDate} à ${reservation.reservationTime}`,
+      type: "RESERVATION_CREATED",
+      metadata: {
+        reservationId: reservation.id,
+        customerName: reservation.customerName,
+        guestsCount: reservation.guestsCount,
+      }
+    }).catch(err => {
+      logger.error(`[Reservation Service] Failed to create admin notification RESERVATION_CREATED: ${err.message}`);
     });
 
     // Fire Reservation Confirmation Email asynchronously (non-blocking)
@@ -218,10 +233,26 @@ export class ReservationService {
       updateData.reservationDate = normalizedDate;
     }
 
-    return prisma.reservation.update({
+    const updated = await prisma.reservation.update({
       where: { id },
       data: updateData,
     });
+
+    if (data.status === ReservationStatus.CANCELLED && existing.status !== ReservationStatus.CANCELLED) {
+      AdminNotificationService.createNotification({
+        title: "Réservation annulée",
+        message: `La réservation pour ${updated.customerName} le ${new Date(updated.reservationDate).toISOString().slice(0, 10)} à ${updated.reservationTime} a été annulée`,
+        type: "RESERVATION_CANCELLED",
+        metadata: {
+          reservationId: updated.id,
+          customerName: updated.customerName,
+        }
+      }).catch(err => {
+        logger.error(`[Reservation Service] Failed to create admin notification RESERVATION_CANCELLED: ${err.message}`);
+      });
+    }
+
+    return updated;
   }
 
   /**

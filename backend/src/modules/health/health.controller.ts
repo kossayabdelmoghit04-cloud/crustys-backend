@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { HealthService } from './health.service';
 import { env } from '../../config/env';
+import { sentryState } from '../../config/sentry';
 
 export class HealthController {
   /**
@@ -21,6 +22,9 @@ export class HealthController {
         uptime: HealthService.getUptime(),
         environment: env.NODE_ENV,
         version: HealthService.getAppVersion(),
+        sentryStatus: env.SENTRY_DSN ? 'active' : 'inactive',
+        sentryEnvironment: env.SENTRY_ENVIRONMENT,
+        lastErrorTimestamp: sentryState.lastErrorTimestamp,
         services: {
           database: dbOk ? 'up' : 'down',
           redis: redisOk ? 'up' : 'down'

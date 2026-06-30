@@ -10,6 +10,8 @@
 import { securityConfig } from '../config/security.config';
 import { SecurityAuditLogger } from '../logs/security.audit';
 import { securityMetrics } from '../metrics/security.metrics';
+import * as Sentry from '@sentry/node';
+import { recordSentryErrorTimestamp } from '../config/sentry';
 import { logger } from '../utils/logger';
 
 interface BruteForceEntry {
@@ -47,6 +49,35 @@ export class BruteForceService {
 
     logger.warn(`[BRUTE FORCE] Échec #${entry.failedAttempts} pour IP ${ip} sur ${route}`);
 
+    if (entry.failedAttempts === 3) {
+      const sentryEventId = Sentry.captureMessage(
+        `[Brute Force] Tentatives d'authentification multiples (${entry.failedAttempts} échecs) pour l'IP ${ip} sur la route ${route}`,
+        'warning'
+      );
+      
+      try {
+        const { AuditService } = require('../modules/audit/audit.service');
+        AuditService.create({
+          action: 'SECURITY_ALERT',
+          ipAddress: ip,
+          entity: 'Security',
+          entityId: route,
+          newValue: { reason: 'Multiple Authentication Failures', failedAttempts: entry.failedAttempts },
+          sentryEventId,
+        }).catch(() => {});
+      } catch (e) {}
+
+      try {
+        const { AdminNotificationService } = require('../modules/admin-notifications/admin-notification.service');
+        AdminNotificationService.createNotification({
+          title: "Sécurité : Tentatives d'authentification multiples échouées",
+          message: `3 tentatives infructueuses de connexion pour l'adresse IP ${ip} sur la route ${route}`,
+          type: "SECURITY_ALERT",
+          metadata: { ip, route, failedAttempts: entry.failedAttempts, sentryEventId }
+        }).catch(() => {});
+      } catch (err) {}
+    }
+
     // Seuil de ban atteint
     if (entry.failedAttempts >= config.maxFailedAttempts) {
       const banDuration = Math.min(
@@ -68,6 +99,33 @@ export class BruteForceService {
         message: `IP bannie pour ${banMinutes} minutes après ${config.maxFailedAttempts} échecs (ban #${entry.banCount}).`,
         metadata: { banDuration, banCount: entry.banCount },
       });
+
+      const sentryEventId = Sentry.captureMessage(
+        `[Auto Ban] Adresse IP ${ip} bannie temporairement pour ${banMinutes} minutes après trop d'échecs de connexion sur la route ${route}`,
+        'error'
+      );
+
+      try {
+        const { AuditService } = require('../modules/audit/audit.service');
+        AuditService.create({
+          action: 'SECURITY_ALERT',
+          ipAddress: ip,
+          entity: 'Security',
+          entityId: route,
+          newValue: { reason: 'IP Temporarily Banned', banDuration, banCount: entry.banCount },
+          sentryEventId,
+        }).catch(() => {});
+      } catch (e) {}
+
+      try {
+        const { AdminNotificationService } = require('../modules/admin-notifications/admin-notification.service');
+        AdminNotificationService.createNotification({
+          title: "Sécurité : Adresse IP Bloquée",
+          message: `L'adresse IP ${ip} a été temporairement bloquée (bannie pour ${banMinutes} minutes) après trop d'échecs`,
+          type: "SECURITY_ALERT",
+          metadata: { ip, route, banDuration, banCount: entry.banCount, sentryEventId }
+        }).catch(() => {});
+      } catch (err) {}
 
       securityMetrics.increment('blocked');
     }

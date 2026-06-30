@@ -2,13 +2,15 @@ import { prisma } from '../../../utils/prisma';
 import { AppError } from '../../../utils/appError';
 import { CreateTestimonialDTO, UpdateTestimonialDTO } from '../dto/testimonial.dto';
 import { ITestimonialFilters } from '../types/testimonial.types';
+import { AdminNotificationService } from '../../admin-notifications/admin-notification.service';
+import { logger } from '../../../utils/logger';
 
 export class TestimonialService {
   /**
    * Créer un nouveau témoignage (soumission publique, isApproved = false par défaut)
    */
   static async create(data: CreateTestimonialDTO) {
-    return prisma.testimonial.create({
+    const testimonial = await prisma.testimonial.create({
       data: {
         customerName: data.customerName,
         message: data.message,
@@ -16,6 +18,21 @@ export class TestimonialService {
         isApproved: false, // Modération par défaut
       },
     });
+
+    AdminNotificationService.createNotification({
+      title: "Nouveau témoignage soumis",
+      message: `Témoignage de ${testimonial.customerName} (${testimonial.rating}/5 étoiles) en attente de modération`,
+      type: "TESTIMONIAL_CREATED",
+      metadata: {
+        testimonialId: testimonial.id,
+        customerName: testimonial.customerName,
+        rating: testimonial.rating,
+      }
+    }).catch(err => {
+      logger.error(`[Testimonial Service] Failed to create admin notification TESTIMONIAL_CREATED: ${err.message}`);
+    });
+
+    return testimonial;
   }
 
   static async getAll(filters: ITestimonialFilters) {

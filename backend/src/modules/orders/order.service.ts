@@ -4,6 +4,8 @@ import { OrderStatus, PaymentStatus, PaymentMethod } from '@prisma/client';
 import { CreateOrderDTO, OrderQueryFilters, UpdateOrderStatusDTO, SalesStatistics } from './order.types';
 import { EmailProducer } from '../emails';
 import { logger } from '../../utils/logger';
+import { AdminNotificationService } from '../admin-notifications/admin-notification.service';
+import { StockAlertService } from '../stock-alerts/stock-alert.service';
 
 export class OrderService {
   /**
@@ -218,6 +220,27 @@ export class OrderService {
       logger.error(`[Order Service] Failed enqueuing Admin New Order Alert email: ${err.message}`);
     });
 
+    // Créer une notification administrateur pour la nouvelle commande
+    AdminNotificationService.createNotification({
+      title: "Nouvelle commande",
+      message: `Commande ${order.orderNumber} créée`,
+      type: "ORDER_CREATED",
+      metadata: {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        totalPrice: order.totalPrice
+      }
+    }).catch(err => {
+      logger.error(`[Order Service] Failed to create admin notification ORDER_CREATED: ${err.message}`);
+    });
+
+    // Vérifier les niveaux de stock pour chaque produit
+    for (const item of data.items) {
+      StockAlertService.checkProductStock(item.productId).catch(err => {
+        logger.error(`[Order Service] Failed checking stock level for ${item.productId}: ${err.message}`);
+      });
+    }
+
     return order;
   }
 
@@ -401,6 +424,22 @@ export class OrderService {
           },
         });
       });
+
+      // Vérifier les stocks après annulation (rétablissement)
+      for (const item of order.items) {
+        StockAlertService.checkProductStock(item.productId).catch(err => {
+          logger.error(`[Order Service] Failed checking stock level for restocked product ${item.productId}: ${err.message}`);
+        });
+      }
+
+      AdminNotificationService.createNotification({
+        title: "Commande annulée",
+        message: `La commande ${order.orderNumber} a été annulée`,
+        type: "ORDER_CANCELLED",
+        metadata: { orderId: order.id, orderNumber: order.orderNumber }
+      }).catch(err => {
+        logger.error(`[Order Service] Failed to create admin notification ORDER_CANCELLED: ${err.message}`);
+      });
     } else {
       // Passage à un autre statut (ex: CONFIRMED, DELIVERED)
       const dataUpdate: any = {
@@ -423,6 +462,15 @@ export class OrderService {
               paymentStatus: PaymentStatus.PAID,
             },
           });
+        });
+
+        AdminNotificationService.createNotification({
+          title: "Commande payée",
+          message: `La commande ${order.orderNumber} a été payée`,
+          type: "ORDER_PAID",
+          metadata: { orderId: order.id, orderNumber: order.orderNumber }
+        }).catch(err => {
+          logger.error(`[Order Service] Failed to create admin notification ORDER_PAID: ${err.message}`);
         });
       } else {
         await prisma.order.update({
@@ -495,6 +543,22 @@ export class OrderService {
           paymentStatus: PaymentStatus.FAILED,
         },
       });
+    });
+
+    // Vérifier les stocks après annulation (rétablissement)
+    for (const item of order.items) {
+      StockAlertService.checkProductStock(item.productId).catch(err => {
+        logger.error(`[Order Service] Failed checking stock level for restocked product ${item.productId}: ${err.message}`);
+      });
+    }
+
+    AdminNotificationService.createNotification({
+      title: "Commande annulée",
+      message: `La commande ${order.orderNumber} a été annulée par le client`,
+      type: "ORDER_CANCELLED",
+      metadata: { orderId: order.id, orderNumber: order.orderNumber }
+    }).catch(err => {
+      logger.error(`[Order Service] Failed to create admin notification ORDER_CANCELLED: ${err.message}`);
     });
 
     return this.getById(id, undefined, 'Admin');
